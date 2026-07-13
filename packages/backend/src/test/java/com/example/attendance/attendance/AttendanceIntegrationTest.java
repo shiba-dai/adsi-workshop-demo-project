@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -108,7 +109,8 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.workDate").exists())
             .andExpect(jsonPath("$.clockIn").exists())
@@ -121,13 +123,15 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/attendance/clock-out")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.clockOut").exists());
     }
@@ -138,7 +142,8 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-out")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isConflict());
     }
 
@@ -148,19 +153,22 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/attendance/clock-out")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated());
     }
 
@@ -181,7 +189,8 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/attendance/today")
@@ -198,13 +207,15 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/attendance/clock-out")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/attendance/today")
@@ -221,13 +232,15 @@ class AttendanceIntegrationTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/attendance/clock-out")
                 .session(employeeSession)
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isOk());
 
         var currentMonth = YearMonth.now().toString();
@@ -284,8 +297,126 @@ class AttendanceIntegrationTest {
     void clockIn_unauthenticated_returns401() throws Exception {
         mockMvc.perform(post("/api/attendance/clock-in")
                 .with(csrf())
-                .param("employeeId", employeeId.toString()))
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
             .andExpect(status().isUnauthorized());
+    }
+
+    // --- メモ機能テスト (Red) ---
+
+    @Test
+    @DisplayName("出勤打刻時にメモを送信するとレスポンスにメモが含まれる")
+    void clockIn_withNote_returnsNote() throws Exception {
+        mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\", \"note\": \"電車遅延のため10分遅刻\"}".formatted(employeeId)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.clockInNote").value("電車遅延のため10分遅刻"));
+    }
+
+    @Test
+    @DisplayName("退勤打刻時にメモを送信するとレスポンスにメモが含まれる")
+    void clockOut_withNote_returnsNote() throws Exception {
+        mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\"}".formatted(employeeId)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/attendance/clock-out")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\", \"note\": \"体調不良のため早退\"}".formatted(employeeId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.clockOutNote").value("体調不良のため早退"));
+    }
+
+    @Test
+    @DisplayName("メモを編集できる")
+    void updateNote_updatesSuccessfully() throws Exception {
+        var result = mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\", \"note\": \"元のメモ\"}".formatted(employeeId)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        var body = result.getResponse().getContentAsString();
+        var recordId = com.fasterxml.jackson.databind.ObjectMapper
+                .class.getDeclaredConstructor().newInstance()
+                .readTree(body).get("id").asText();
+
+        mockMvc.perform(patch("/api/attendance/{id}/note", recordId)
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"clockInNote\": \"更新後のメモ\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.clockInNote").value("更新後のメモ"));
+    }
+
+    @Test
+    @DisplayName("メモが201文字以上の場合はバリデーションエラー")
+    void clockIn_noteTooLong_returns400() throws Exception {
+        var longNote = "あ".repeat(201);
+        mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\", \"note\": \"%s\"}".formatted(employeeId, longNote)))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("他人の打刻レコードのメモを編集しようとすると403")
+    void updateNote_otherUser_returns403() throws Exception {
+        var result = mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\", \"note\": \"自分のメモ\"}".formatted(employeeId)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        var body = result.getResponse().getContentAsString();
+        var recordId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(body).get("id").asText();
+
+        mockMvc.perform(patch("/api/attendance/{id}/note", recordId)
+                .session(managerSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"clockInNote\": \"書き換え\"}"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("空文字を送信するとメモがクリアされる")
+    void updateNote_emptyString_clearsNote() throws Exception {
+        var result = mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"employeeId\": \"%s\", \"note\": \"削除対象メモ\"}".formatted(employeeId)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        var body = result.getResponse().getContentAsString();
+        var recordId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(body).get("id").asText();
+
+        mockMvc.perform(patch("/api/attendance/{id}/note", recordId)
+                .session(employeeSession)
+                .with(csrf())
+                .contentType(APPLICATION_JSON)
+                .content("{\"clockInNote\": \"\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.clockInNote").doesNotExist());
     }
 
     private MockHttpSession login(String email, String password) throws Exception {

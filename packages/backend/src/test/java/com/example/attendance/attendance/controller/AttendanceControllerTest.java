@@ -28,7 +28,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -73,13 +76,16 @@ class AttendanceControllerTest {
                 LocalDate.of(2025, 1, 15),
                 Instant.parse("2025-01-15T00:00:00Z"),
                 null,
+                null,
+                null,
                 false
         );
-        when(attendanceService.clockIn(EMPLOYEE_ID)).thenReturn(response);
+        when(attendanceService.clockIn(eq(EMPLOYEE_ID), any())).thenReturn(response);
 
         // Act & Assert
         mockMvc.perform(post("/api/attendance/clock-in")
-                        .param("employeeId", EMPLOYEE_ID.toString()))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"employeeId\": \"%s\"}".formatted(EMPLOYEE_ID)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.workDate").value("2025-01-15"))
                 .andExpect(jsonPath("$.clockOut").doesNotExist());
@@ -94,13 +100,16 @@ class AttendanceControllerTest {
                 LocalDate.of(2025, 1, 15),
                 Instant.parse("2025-01-14T23:00:00Z"),
                 Instant.parse("2025-01-15T08:00:00Z"),
+                null,
+                null,
                 false
         );
-        when(attendanceService.clockOut(EMPLOYEE_ID)).thenReturn(response);
+        when(attendanceService.clockOut(eq(EMPLOYEE_ID), any())).thenReturn(response);
 
         // Act & Assert
         mockMvc.perform(post("/api/attendance/clock-out")
-                        .param("employeeId", EMPLOYEE_ID.toString()))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"employeeId\": \"%s\"}".formatted(EMPLOYEE_ID)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clockOut").exists());
     }

@@ -95,6 +95,7 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/attendance/clock-out").authenticated()
             .requestMatchers(HttpMethod.GET, "/api/attendance/today").authenticated()
             .requestMatchers(HttpMethod.GET, "/api/attendance/history").authenticated()
+            .requestMatchers(HttpMethod.PATCH, "/api/attendance/*/note").authenticated()
             .requestMatchers(HttpMethod.POST, "/api/corrections").authenticated()
             .requestMatchers(HttpMethod.GET, "/api/corrections").authenticated()
 
