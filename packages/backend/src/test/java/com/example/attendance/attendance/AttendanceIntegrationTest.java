@@ -116,6 +116,22 @@ class AttendanceIntegrationTest {
     }
 
     @Test
+    @DisplayName("二重出勤打刻すると409が返される")
+    void clockIn_alreadyClockedIn_returns409() throws Exception {
+        mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .param("employeeId", employeeId.toString()))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/attendance/clock-in")
+                .session(employeeSession)
+                .with(csrf())
+                .param("employeeId", employeeId.toString()))
+            .andExpect(status().isConflict());
+    }
+
+    @Test
     @DisplayName("出勤→退勤のフローが正常に動作する")
     void clockInThenClockOut_succeeds() throws Exception {
         mockMvc.perform(post("/api/attendance/clock-in")
