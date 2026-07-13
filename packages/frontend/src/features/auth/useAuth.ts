@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { withBasePath } from "@/lib/api-client";
 import { fetchCurrentUser, type LoginRequest, login, logout } from "./auth-api";
 
 const AUTH_QUERY_KEY = ["auth", "me"] as const;
@@ -36,13 +37,12 @@ export function useLogin() {
 
 export function useLogout() {
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   return useMutation({
     mutationFn: () => logout(),
     onSuccess: () => {
       queryClient.clear();
-      router.push("/login");
+      window.location.href = withBasePath("/login");
     },
   });
 }
