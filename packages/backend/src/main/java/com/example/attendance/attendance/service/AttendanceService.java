@@ -10,9 +10,11 @@ import java.util.UUID;
 
 public interface AttendanceService {
 
-    AttendanceRecordResponse clockIn(UUID employeeId);
+    AttendanceRecordResponse clockIn(UUID employeeId, String note);
 
-    AttendanceRecordResponse clockOut(UUID employeeId);
+    AttendanceRecordResponse clockOut(UUID employeeId, String note);
+
+    AttendanceRecordResponse updateNote(UUID recordId, UUID authenticatedUserId, String clockInNote, String clockOutNote);
 
     TodayStatusResponse getTodayStatus(UUID employeeId);
 

@@ -2,12 +2,21 @@ package com.example.attendance.attendance.controller;
 
 import com.example.attendance.attendance.dto.AttendanceHistoryResponse;
 import com.example.attendance.attendance.dto.AttendanceRecordResponse;
+import com.example.attendance.attendance.dto.ClockInRequest;
+import com.example.attendance.attendance.dto.ClockOutRequest;
 import com.example.attendance.attendance.dto.TeamMemberSummaryResponse;
 import com.example.attendance.attendance.dto.TodayStatusResponse;
+import com.example.attendance.attendance.dto.UpdateNoteRequest;
 import com.example.attendance.attendance.service.AttendanceService;
+import com.example.attendance.common.config.security.EmployeeUserDetails;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -28,13 +37,21 @@ public class AttendanceController {
 
     @PostMapping("/clock-in")
     @ResponseStatus(HttpStatus.CREATED)
-    public AttendanceRecordResponse clockIn(@RequestParam UUID employeeId) {
-        return attendanceService.clockIn(employeeId);
+    public AttendanceRecordResponse clockIn(@Valid @RequestBody ClockInRequest request) {
+        return attendanceService.clockIn(request.employeeId(), request.note());
     }
 
     @PostMapping("/clock-out")
-    public AttendanceRecordResponse clockOut(@RequestParam UUID employeeId) {
-        return attendanceService.clockOut(employeeId);
+    public AttendanceRecordResponse clockOut(@Valid @RequestBody ClockOutRequest request) {
+        return attendanceService.clockOut(request.employeeId(), request.note());
+    }
+
+    @PatchMapping("/{id}/note")
+    public AttendanceRecordResponse updateNote(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal EmployeeUserDetails userDetails,
+            @Valid @RequestBody UpdateNoteRequest request) {
+        return attendanceService.updateNote(id, userDetails.getEmployeeId(), request.clockInNote(), request.clockOutNote());
     }
 
     @GetMapping("/today")

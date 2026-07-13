@@ -50,7 +50,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public AttendanceRecordResponse clockIn(UUID employeeId) {
+    public AttendanceRecordResponse clockIn(UUID employeeId, String note) {
         var employee = findEmployeeOrThrow(employeeId);
         var today = LocalDate.now(clock);
 
@@ -65,6 +65,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .employee(employee)
                 .workDate(today)
                 .clockIn(now)
+                .clockInNote(sanitizeNote(note))
                 .corrected(false)
                 .build();
 
@@ -75,15 +76,45 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public AttendanceRecordResponse clockOut(UUID employeeId) {
+    public AttendanceRecordResponse clockOut(UUID employeeId, String note) {
         var today = LocalDate.now(clock);
         var record = attendanceRepository.findByEmployeeIdAndWorkDateAndClockOutIsNull(employeeId, today)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "No active clock-in found"));
 
         record.setClockOut(Instant.now(clock));
+        record.setClockOutNote(sanitizeNote(note));
         var saved = attendanceRepository.save(record);
         log.info("Clock-out recorded for employee={} at={}", employeeId, saved.getClockOut());
         return AttendanceRecordResponse.from(saved);
+    }
+
+    @Override
+    @Transactional
+    public AttendanceRecordResponse updateNote(UUID recordId, UUID authenticatedUserId, String clockInNote, String clockOutNote) {
+        var record = attendanceRepository.findById(recordId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Attendance record with id '%s' was not found".formatted(recordId)));
+
+        if (!record.getEmployee().getId().equals(authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit your own notes");
+        }
+
+        if (clockInNote != null) {
+            record.setClockInNote(clockInNote.isEmpty() ? null : sanitizeNote(clockInNote));
+        }
+        if (clockOutNote != null) {
+            record.setClockOutNote(clockOutNote.isEmpty() ? null : sanitizeNote(clockOutNote));
+        }
+
+        var saved = attendanceRepository.save(record);
+        return AttendanceRecordResponse.from(saved);
+    }
+
+    private String sanitizeNote(String note) {
+        if (note == null) {
+            return null;
+        }
+        return note.replaceAll("[\\r\\n]", "").trim();
     }
 
     @Override
