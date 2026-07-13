@@ -3,12 +3,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/Toast";
 import { useAuth } from "@/features/auth/useAuth";
+import type { UpdateNoteRequest } from "./attendance-api";
 import {
   clockIn,
   clockOut,
   fetchHistory,
   fetchTeamAttendance,
   fetchTodayStatus,
+  updateNote,
 } from "./attendance-api";
 
 const TODAY_STATUS_KEY = ["attendance", "today"] as const;
@@ -32,7 +34,7 @@ export function useClockIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => clockIn(user!.id),
+    mutationFn: (note?: string) => clockIn(user!.id, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TODAY_STATUS_KEY });
       toast.success("出勤を記録しました");
@@ -45,10 +47,24 @@ export function useClockOut() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => clockOut(user!.id),
+    mutationFn: (note?: string) => clockOut(user!.id, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TODAY_STATUS_KEY });
       toast.success("退勤を記録しました");
+    },
+  });
+}
+
+export function useUpdateNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ recordId, request }: { recordId: string; request: UpdateNoteRequest }) =>
+      updateNote(recordId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TODAY_STATUS_KEY });
+      queryClient.invalidateQueries({ queryKey: HISTORY_KEY });
+      toast.success("メモを更新しました");
     },
   });
 }

@@ -43,7 +43,7 @@ export default function HistoryPage() {
           ))}
         </div>
       ) : (
-        <AttendanceTable days={data?.days ?? []} />
+        <AttendanceTable days={data?.days ?? []} editable />
       )}
     </div>
   );
