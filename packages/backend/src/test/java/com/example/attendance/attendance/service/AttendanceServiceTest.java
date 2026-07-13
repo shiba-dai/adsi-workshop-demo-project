@@ -77,6 +77,26 @@ class AttendanceServiceTest {
     class ClockIn {
 
         @Test
+        @DisplayName("出勤中に再度出勤打刻すると409エラー")
+        void clockIn_alreadyClockedIn_throwsConflict() {
+            // Arrange
+            var existingRecord = AttendanceRecord.builder()
+                    .id(UUID.randomUUID())
+                    .employee(employee)
+                    .workDate(TODAY_TOKYO)
+                    .clockIn(FIXED_INSTANT)
+                    .build();
+            when(employeeRepository.findById(employee.getId())).thenReturn(Optional.of(employee));
+            when(attendanceRepository.findByEmployeeIdAndWorkDateAndClockOutIsNull(employee.getId(), TODAY_TOKYO))
+                    .thenReturn(Optional.of(existingRecord));
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.clockIn(employee.getId()))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .hasMessageContaining("Already clocked in");
+        }
+
+        @Test
         @DisplayName("正常に出勤打刻ができる")
         void clockIn_normal_createsRecord() {
             // Arrange
